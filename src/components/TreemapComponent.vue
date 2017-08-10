@@ -59,7 +59,7 @@ export default {
       var label = this.model['dimensions'][levelName]['label']
       var labelAttribute = this.model['dimensions'][levelName]['label_attribute']
 
-      return [`${this.selectedHierarchy['currentLevel']}.${label}`, `${this.selectedHierarchy['currentLevel']}.${labelAttribute}`]
+      return [`${this.selectedHierarchy['levels'][level]}.${label}`, `${this.selectedHierarchy['levels'][level]}.${labelAttribute}`]
     },
     getData: function ($event) {
       var apiRequestUrl, level
@@ -73,7 +73,8 @@ export default {
       if (!level || level === '/' || level === '') {
         apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017&drilldown=${levelInfo[0]}|${levelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
       } else {
-        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017|${levelInfo[0]}:"${level}"&drilldown=${levelInfo[0]}|${levelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
+        var lastLevelInfo = this.getLevel(1)
+        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017|${levelInfo[0]}:"${level}"&drilldown=${lastLevelInfo[0]}|${lastLevelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
       }
 
       axios.get(apiRequestUrl).then(response => {
