@@ -46,7 +46,6 @@ export default class Treemap {
     }
 
     function positionNode (d) {
-      console.log(d)
       d.style('left', function (d) { return d.x + 'px' })
        .style('top', function (d) { return d.y + 'px' })
        .style('width', function (d) { return Math.max(0, d.dx - 1) + 'px' })

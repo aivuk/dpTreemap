@@ -18,12 +18,13 @@ export default {
   },
   data () {
     return {
+      model: {},
       colors: [],
       config: {
         'value': 'Betrag.sum',
-        'label': 'functional_classification_3.Oberfunktionsbezeichnung',
-        'level': 'functional_classification_3.Oberfunktion'
-      }
+        'hierarquies': ['administrative_classification', 'economic_classification']
+      },
+      selectedHierarchy: {}
     }
   },
   mounted () {
@@ -36,39 +37,59 @@ export default {
       '#EF58A0', '#C05A89' ]
     window.addEventListener('hashchange', this.getData)
 
-    this.getData()
+    this.selectedHierarchy = { 'name': this.config['hierarquies'][0] }
+    this.getModel().then(() => this.getData())
   },
   methods: {
+    getModel: function () {
+      var apiRequestUrl = `${this.apiurl}${this.datapackage}/model`
+      return axios.get(apiRequestUrl).then(response => {
+        this.model = response.data.model
+
+        this.selectedHierarchy['levels'] = this.model['hierarchies'][this.selectedHierarchy['name']]['levels']
+        var currentLevel = this.selectedHierarchy['levels'][0]
+        this.selectedHierarchy['currentLevelNumber'] = 0
+        this.selectedHierarchy['currentLevel'] = currentLevel
+        this.selectedHierarchy['currentLevelLabel'] = this.model['dimensions'][currentLevel]['label']
+        this.selectedHierarchy['currentLevelLabelAttr'] = this.model['dimensions'][currentLevel]['label_attribute']
+      })
+    },
+    getLevel: function (level) {
+      var levelName = this.selectedHierarchy['levels'][level]
+      var label = this.model['dimensions'][levelName]['label']
+      var labelAttribute = this.model['dimensions'][levelName]['label_attribute']
+
+      return [`${this.selectedHierarchy['currentLevel']}.${label}`, `${this.selectedHierarchy['currentLevel']}.${labelAttribute}`]
+    },
     getData: function ($event) {
       var apiRequestUrl, level
       if ($event) {
         // Parse hash arguments
         level = $event['newURL'].split('#')[1]
-        console.log('LEVEL', level, !level, level === '')
       }
+
+      var levelInfo = this.getLevel(this.selectedHierarchy['currentLevelNumber'])
 
       if (!level || level === '/' || level === '') {
-        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017&drilldown=${this.config.label}|${this.config.level}&order=${this.config.value}:desc&pagesize=30`
+        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017&drilldown=${levelInfo[0]}|${levelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
       } else {
-        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017|${this.config.level}:"${level}"&drilldown=${this.config.label}|${this.config.level}"&order=${this.config.value}:desc&pagesize=30`
+        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017|${levelInfo[0]}:"${level}"&drilldown=${levelInfo[0]}|${levelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
       }
 
-      console.log(apiRequestUrl)
       axios.get(apiRequestUrl).then(response => {
-        console.log(response)
         this.data = response.data
 
         var color = d3.scale.ordinal().range(this.colors)
-//        var rootColor = d3.rgb(this.colors[0])
-//        color = color.interpolate(d3.interpolateRgb)
-//        color = color.range([rootColor.brighter(), rootColor.darker().darker()])
         color = color.domain([this.data.total_cell_count, 0])
 
+        var levelInfo = this.getLevel(this.selectedHierarchy['currentLevelNumber'])
+
         for (var i in this.data['cells']) {
+          // console.log(this.data['cells'][i])
           this.data['cells'][i]['_value'] = this.data['cells'][i][this.config['value']]
           this.data['cells'][i]['_color'] = color(i)
-          this.data['cells'][i]['_label'] = this.data['cells'][i][this.config['label']]
-          this.data['cells'][i]['_url'] = '#' + this.data['cells'][i][this.config['level']]
+          this.data['cells'][i]['_label'] = this.data['cells'][i][levelInfo[1]]
+          this.data['cells'][i]['_url'] = '#' + this.data['cells'][i][levelInfo[0]]
           // cell._current_key = cell[site.keyrefs[dimension]]
           // dimension = dimension.split('.')[0]
           // cell._current_label = cell[site.labelrefs[dimension]]
@@ -135,6 +156,7 @@ a {
   display: block;
   padding-bottom: 0.2em;
   font-size: 1.5em;
+  text-indent: 2px;
 }
 
 .node.big {
