@@ -1,15 +1,14 @@
-// The Vue build version to load with the `import` command
-// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+import 'document-register-element/build/document-register-element'
 import Vue from 'vue'
-import App from './App'
+import VueCustomElement from 'vue-custom-element'
+import TreemapComponent from './components/TreemapComponent'
+import Promise from 'es6-promise'
+/* eslint-disable no-unused-vars */
 import router from './router'
 
-Vue.config.productionTip = false
+Promise.polyfill()
 
-/* eslint-disable no-new */
-new Vue({
-  el: '#app',
-  router,
-  template: '<App/>',
-  components: { App }
-})
+Vue.config.productionTip = false
+Vue.use(VueCustomElement)
+Vue.customElement('dp-treemap', TreemapComponent)
+

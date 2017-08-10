@@ -1,15 +1,16 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Treemap from '@/components/Treemap'
+import TreemapComponent from '@/components/TreemapComponent'
 
 Vue.use(Router)
 
 export default new Router({
   routes: [
     {
-      path: '/',
+      path: '/:level',
       name: 'Treemap',
-      component: Treemap
+      component: TreemapComponent,
+      props: true
     }
   ]
 })
