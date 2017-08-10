@@ -21,7 +21,7 @@ export default class Treemap {
       .sort(function (a, b) { return Math.abs(a.value) - Math.abs(b.value) })
       .value(function (d) { return Math.abs(d.value) })
 
-    this.div = d3.select('#treemap').append('div')
+    this.div = d3.select('.treemap').append('div')
       .style('position', 'relative')
       .style('width', this.width + 'px')
       .style('height', this.height + 'px')
@@ -45,12 +45,20 @@ export default class Treemap {
       })
     }
 
+    function positionNode (d) {
+      console.log(d)
+      d.style('left', function (d) { return d.x + 'px' })
+       .style('top', function (d) { return d.y + 'px' })
+       .style('width', function (d) { return Math.max(0, d.dx - 1) + 'px' })
+       .style('height', function (d) { return Math.max(0, d.dy - 1) + 'px' })
+    }
+
     this.div.datum(root).selectAll('.node')
         .data(this.treemap.nodes)
           .enter().append('a')
             .attr('href', function (d) { return d.href })
             .attr('class', 'node')
-            .call(this.positionNode)
+            .call(positionNode)
             .style('background', '#fff')
             .classed('big', function (d) { return d.value > data.summary._value / 50 })
             .html(function (d) {
@@ -71,12 +79,5 @@ export default class Treemap {
             .duration(500)
             .delay(function (d, i) { return Math.min(i * 30, 1500) })
             .style('background', function (d) { return d.color })
-  }
-
-  positionNode () {
-    this.style('left', function (d) { return d.x + 'px' })
-        .style('top', function (d) { return d.y + 'px' })
-        .style('width', function (d) { return Math.max(0, d.dx - 1) + 'px' })
-        .style('height', function (d) { return Math.max(0, d.dy - 1) + 'px' })
   }
 }
