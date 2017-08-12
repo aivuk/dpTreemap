@@ -126,7 +126,9 @@ export default {
           this.data['cells'][i]['_value'] = this.data['cells'][i][this.config['value']]
           this.data['cells'][i]['_color'] = color(i)
           this.data['cells'][i]['_label'] = this.data['cells'][i][level[0]]
-          this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}`
+          if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['name']]['levels'].length - 1) {
+            this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}`
+          }
           // cell._current_key = cell[site.keyrefs[dimension]]
           // dimension = dimension.split('.')[0]
           // cell._current_label = cell[site.labelrefs[dimension]]
