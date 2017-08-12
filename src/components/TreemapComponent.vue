@@ -7,6 +7,7 @@
 
 <script>
 import Treemap from '../treemap'
+import { parseURL } from '../utils/urlParser'
 import axios from 'axios'
 import * as d3 from 'd3'
 
@@ -24,7 +25,8 @@ export default {
         'value': 'Betrag.sum',
         'hierarquies': ['administrative_classification', 'economic_classification']
       },
-      selectedHierarchy: {}
+      selectedHierarchy: {},
+      query: {}
     }
   },
   mounted () {
@@ -35,47 +37,78 @@ export default {
       '#60C4B1', '#27C4F4', '#478DCB', '#3E67B1', '#4251A3',
       '#59449B', '#6E3F7C', '#6A246D', '#8A4873', '#EB0080',
       '#EF58A0', '#C05A89' ]
-    window.addEventListener('hashchange', this.getData)
 
-    this.selectedHierarchy = { 'name': this.config['hierarquies'][0] }
-    this.getModel().then(() => this.getData())
+    window.addEventListener('hashchange', this.updateData)
+    this.getURLParameters()
+    this.getModel().then(() => this.updateData())
   },
   methods: {
+    getURLParameters: function () {
+      var URLarguments = parseURL(window.location.toString())
+      console.log('URL', window.location.toString(), URLarguments)
+      if (URLarguments[0].length === 0) {
+        this.selectedHierarchy = { 'name': this.config['hierarquies'][0] }
+        window.location.hash = this.config['hierarquies'][0]
+      } else {
+        this.selectedHierarchy = { 'name': URLarguments[0] }
+      }
+      this.selectedHierarchy['levelsParams'] = URLarguments[0].splice(1)
+    },
+    getHierarquies: function () {
+      var levelsLength = this.selectedHierarchy['levelsParams'].length
+      var hierqQuery = ''
+
+      if (levelsLength > 0) {
+        for (var i in this.model.hierarchies[this.selectedHierarchy['name']]['levels']) {
+          if (i < levelsLength) {
+            var hierqName = this.model.hierarchies[this.selectedHierarchy['name']]['levels'][i]
+            hierqQuery += `|${this.model.dimensions[hierqName]['key_ref']}:"${this.selectedHierarchy['levelsParams'][i]}"`
+          }
+        }
+      }
+
+      return hierqQuery
+    },
+    getDrilldown: function () {
+      var levelsLength = this.selectedHierarchy['levelsParams'].length
+      var label, key
+      console.log(this.selectedHierarchy)
+
+      if (levelsLength >= 1) {
+        label = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][levelsLength]]['label_ref']
+        key = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][levelsLength]]['key_ref']
+      } else {
+        label = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][0]]['label_ref']
+        key = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][0]]['key_ref']
+      }
+      return `${label}|${key}`
+    },
     getModel: function () {
       var apiRequestUrl = `${this.apiurl}${this.datapackage}/model`
       return axios.get(apiRequestUrl).then(response => {
+        console.log(response.data.model)
         this.model = response.data.model
-
         this.selectedHierarchy['levels'] = this.model['hierarchies'][this.selectedHierarchy['name']]['levels']
-        var currentLevel = this.selectedHierarchy['levels'][0]
-        this.selectedHierarchy['currentLevelNumber'] = 0
-        this.selectedHierarchy['currentLevel'] = currentLevel
-        this.selectedHierarchy['currentLevelLabel'] = this.model['dimensions'][currentLevel]['label']
-        this.selectedHierarchy['currentLevelLabelAttr'] = this.model['dimensions'][currentLevel]['label_attribute']
       })
     },
-    getLevel: function (level) {
-      var levelName = this.selectedHierarchy['levels'][level]
-      var label = this.model['dimensions'][levelName]['label']
-      var labelAttribute = this.model['dimensions'][levelName]['label_attribute']
-
-      return [`${this.selectedHierarchy['levels'][level]}.${label}`, `${this.selectedHierarchy['levels'][level]}.${labelAttribute}`]
+    updateData: function () {
+      this.getURLParameters()
+      this.getData()
+    },
+    getCurrentLevel: function () {
+      var levelsLength = this.selectedHierarchy['levelsParams'].length
+      var levelName = this.model['hierarchies'][this.selectedHierarchy['name']]['levels'][levelsLength]
+      var levelLabel = this.model['dimensions'][levelName]['label_ref']
+      var levelKey = this.model['dimensions'][levelName]['key_ref']
+      return [levelLabel, levelKey]
     },
     getData: function ($event) {
-      var apiRequestUrl, level
-      if ($event) {
-        // Parse hash arguments
-        level = $event['newURL'].split('#')[1]
-      }
+      var apiRequestUrl
 
-      var levelInfo = this.getLevel(this.selectedHierarchy['currentLevelNumber'])
+      var drilldown = this.getDrilldown()
+      var hierarquiesFilter = this.getHierarquies()
 
-      if (!level || level === '/' || level === '') {
-        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017&drilldown=${levelInfo[0]}|${levelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
-      } else {
-        var lastLevelInfo = this.getLevel(1)
-        apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017|${levelInfo[0]}:"${level}"&drilldown=${lastLevelInfo[0]}|${lastLevelInfo[1]}&order=${this.config.value}:desc&pagesize=30`
-      }
+      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017${hierarquiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
 
       axios.get(apiRequestUrl).then(response => {
         this.data = response.data
@@ -83,14 +116,17 @@ export default {
         var color = d3.scale.ordinal().range(this.colors)
         color = color.domain([this.data.total_cell_count, 0])
 
-        var levelInfo = this.getLevel(this.selectedHierarchy['currentLevelNumber'])
-
         for (var i in this.data['cells']) {
           // console.log(this.data['cells'][i])
+          var level = this.getCurrentLevel()
+          var levelsParams = ''
+          if (this.selectedHierarchy['levelsParams'].length >= 1) {
+            levelsParams = `${this.selectedHierarchy['levelsParams'].join('/')}/`
+          }
           this.data['cells'][i]['_value'] = this.data['cells'][i][this.config['value']]
           this.data['cells'][i]['_color'] = color(i)
-          this.data['cells'][i]['_label'] = this.data['cells'][i][levelInfo[1]]
-          this.data['cells'][i]['_url'] = '#' + this.data['cells'][i][levelInfo[0]]
+          this.data['cells'][i]['_label'] = this.data['cells'][i][level[0]]
+          this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}`
           // cell._current_key = cell[site.keyrefs[dimension]]
           // dimension = dimension.split('.')[0]
           // cell._current_label = cell[site.labelrefs[dimension]]
