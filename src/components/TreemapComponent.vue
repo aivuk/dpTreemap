@@ -116,6 +116,15 @@ export default {
       for (var k in this.filters) {
         filters += `${this.config['filters'][k]['name']}:${this.filters[k]}|`
       }
+
+      if (filters === '') {
+        for (k in this.config['filters']) {
+          var defaultFilter = this.config['filters'][k]['name']
+          var defaultFilterValue = this.config['filters'][k]['values'][0]
+          filters += `${defaultFilter}:${defaultFilterValue}`
+        }
+      }
+
       return filters
     },
 
@@ -125,14 +134,6 @@ export default {
       var drilldown = this.getDrilldown()
       var hierarquiesFilter = this.getHierarquies()
       var filters = this.getFilters()
-
-      if (filters === '') {
-        for (var k in this.config['filters']) {
-          var defaultFilter = this.config['filters'][k]['name']
-          var defaultFilterValue = this.config['filters'][k]['values'][0]
-          filters += `${defaultFilter}:${defaultFilterValue}`
-        }
-      }
 
       apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarquiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
 
