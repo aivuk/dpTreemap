@@ -10,25 +10,30 @@ import Treemap from '../treemap'
 import { parseURL } from '../utils/urlParser'
 import axios from 'axios'
 import * as d3 from 'd3'
+import * as qs from 'query-string'
 
 export default {
   name: 'treemap',
+
   props: {
     datapackage: '',
     apiurl: ''
   },
+
   data () {
     return {
       model: {},
       colors: [],
       config: {
         'value': 'Betrag.sum',
-        'hierarquies': ['administrative_classification', 'economic_classification']
+        'hierarquies': ['administrative_classification', 'economic_classification'],
+        'filters': {'Jahr': {'name': 'date_2.Jahr', 'values': [2017, 2016]}}
       },
       selectedHierarchy: {},
-      query: {}
+      filters: {}
     }
   },
+
   mounted () {
     this.treemap = new Treemap('.treemap')
     this.colors = [
@@ -42,10 +47,10 @@ export default {
     this.getURLParameters()
     this.getModel().then(() => this.updateData())
   },
+
   methods: {
     getURLParameters: function () {
       var URLarguments = parseURL(window.location.toString())
-      console.log('URL', window.location.toString(), URLarguments)
       if (URLarguments[0].length === 0) {
         this.selectedHierarchy = { 'name': this.config['hierarquies'][0] }
         window.location.hash = this.config['hierarquies'][0]
@@ -53,7 +58,9 @@ export default {
         this.selectedHierarchy = { 'name': URLarguments[0] }
       }
       this.selectedHierarchy['levelsParams'] = URLarguments[0].splice(1)
+      this.filters = URLarguments[1]
     },
+
     getHierarquies: function () {
       var levelsLength = this.selectedHierarchy['levelsParams'].length
       var hierqQuery = ''
@@ -66,13 +73,12 @@ export default {
           }
         }
       }
-
       return hierqQuery
     },
+
     getDrilldown: function () {
       var levelsLength = this.selectedHierarchy['levelsParams'].length
       var label, key
-      console.log(this.selectedHierarchy)
 
       if (levelsLength >= 1) {
         label = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][levelsLength]]['label_ref']
@@ -83,18 +89,20 @@ export default {
       }
       return `${label}|${key}`
     },
+
     getModel: function () {
       var apiRequestUrl = `${this.apiurl}${this.datapackage}/model`
       return axios.get(apiRequestUrl).then(response => {
-        console.log(response.data.model)
         this.model = response.data.model
         this.selectedHierarchy['levels'] = this.model['hierarchies'][this.selectedHierarchy['name']]['levels']
       })
     },
+
     updateData: function () {
       this.getURLParameters()
       this.getData()
     },
+
     getCurrentLevel: function () {
       var levelsLength = this.selectedHierarchy['levelsParams'].length
       var levelName = this.model['hierarchies'][this.selectedHierarchy['name']]['levels'][levelsLength]
@@ -102,13 +110,31 @@ export default {
       var levelKey = this.model['dimensions'][levelName]['key_ref']
       return [levelLabel, levelKey]
     },
+
+    getFilters: function () {
+      var filters = ''
+      for (var k in this.filters) {
+        filters += `${this.config['filters'][k]['name']}:${this.filters[k]}|`
+      }
+      return filters
+    },
+
     getData: function ($event) {
       var apiRequestUrl
 
       var drilldown = this.getDrilldown()
       var hierarquiesFilter = this.getHierarquies()
+      var filters = this.getFilters()
 
-      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=date_2.Jahr:2017${hierarquiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
+      if (filters === '') {
+        for (var k in this.config['filters']) {
+          var defaultFilter = this.config['filters'][k]['name']
+          var defaultFilterValue = this.config['filters'][k]['values'][0]
+          filters += `${defaultFilter}:${defaultFilterValue}`
+        }
+      }
+
+      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarquiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
 
       axios.get(apiRequestUrl).then(response => {
         this.data = response.data
@@ -117,9 +143,12 @@ export default {
         color = color.domain([this.data.total_cell_count, 0])
 
         for (var i in this.data['cells']) {
-          // console.log(this.data['cells'][i])
           var level = this.getCurrentLevel()
           var levelsParams = ''
+          var filters = qs.stringify(this.filters)
+          if (filters !== '') {
+            filters = '?' + filters
+          }
           if (this.selectedHierarchy['levelsParams'].length >= 1) {
             levelsParams = `${this.selectedHierarchy['levelsParams'].join('/')}/`
           }
@@ -127,7 +156,7 @@ export default {
           this.data['cells'][i]['_color'] = color(i)
           this.data['cells'][i]['_label'] = this.data['cells'][i][level[0]]
           if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['name']]['levels'].length - 1) {
-            this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}`
+            this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}${filters}`
           }
           // cell._current_key = cell[site.keyrefs[dimension]]
           // dimension = dimension.split('.')[0]
