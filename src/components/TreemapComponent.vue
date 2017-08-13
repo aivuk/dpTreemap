@@ -11,6 +11,7 @@ import { parseURL } from '../utils/urlParser'
 import axios from 'axios'
 import * as d3 from 'd3'
 import * as qs from 'query-string'
+import * as accounting from 'accounting'
 
 export default {
   name: 'treemap',
@@ -128,6 +129,10 @@ export default {
       return filters
     },
 
+    formatValue: function (value) {
+      return accounting.formatMoney(value, '€', 0, '.')
+    },
+
     getData: function ($event) {
       var apiRequestUrl
 
@@ -143,7 +148,13 @@ export default {
         var color = d3.scale.ordinal().range(this.colors)
         color = color.domain([this.data.total_cell_count, 0])
 
+        var total = 0
         for (var i in this.data['cells']) {
+          total += this.data['cells'][i][this.config['value']]
+          this.data['summary']['_value'] = total
+        }
+
+        for (i in this.data['cells']) {
           var level = this.getCurrentLevel()
           var levelsParams = ''
           var filters = qs.stringify(this.filters)
@@ -156,6 +167,7 @@ export default {
           this.data['cells'][i]['_value'] = this.data['cells'][i][this.config['value']]
           this.data['cells'][i]['_color'] = color(i)
           this.data['cells'][i]['_label'] = this.data['cells'][i][level[0]]
+          this.data['cells'][i]['_value_fmt'] = this.formatValue(this.data['cells'][i]['_value'])
           if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['name']]['levels'].length - 1) {
             this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}${filters}`
           }
@@ -165,10 +177,11 @@ export default {
           // cell._current_key = cell[site.keyrefs[dimension]]
           // cell._value = cell[site.aggregate]
           // cell._value_fmt = OSDE.amount(cell._value)
-          // cell._percentage = cell[site.aggregate] / data.summary[site.aggregate]
-          // cell._small = cell._percentage < 0.01
-          // cell._percentage_fmt = (cell._percentage * 100).toFixed(2) + '%'
-          // cell._percentage_fmt = cell._percentage_fmt.replace('.', ',')
+          this.data['cells'][i]['_percentage'] = this.data['cells'][i]['_value'] / total
+          this.data['cells'][i]['_small'] = this.data['cells'][i]['_percentage'] < 0.01
+          var percentageFmt = (this.data['cells'][i]['_percentage'] * 100).toFixed(2) + '%'
+          percentageFmt = percentageFmt.replace('.', ',')
+          this.data['cells'][i]['_percentage_fmt'] = percentageFmt
         }
 
         this.treemap.render(this.data)

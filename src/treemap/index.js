@@ -38,8 +38,8 @@ export default class Treemap {
       root.children.push({
         name: data.cells[i]['_label'],
         value: data.cells[i]['_value'],
-        value_fmt: data.cells[i]['_value'],
-        percentage: data.cells[i]._percentage,
+        value_fmt: data.cells[i]['_value_fmt'],
+        percentage: data.cells[i]['_percentage'],
         href: data.cells[i]['_url'],
         color: data.cells[i]['_color']
       })
@@ -51,6 +51,8 @@ export default class Treemap {
        .style('width', function (d) { return Math.max(0, d.dx - 1) + 'px' })
        .style('height', function (d) { return Math.max(0, d.dy - 1) + 'px' })
     }
+
+    console.log(data)
 
     this.div.datum(root).selectAll('.node')
         .data(this.treemap.nodes)
