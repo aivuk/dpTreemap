@@ -1,46 +1,46 @@
 <template>
-  <div>
-  <div class="controls">
-    <div class="hierarquies">
-    <a :href="`#${hierq}`" v-for="hierq in config['hierarquies']">{{hierq}}</a>
-    </div>
+  <div class="treemap-content">
+    <div class="controls">
+      <div class="hierarquies">
+      <a :href="`#${hierq}`" v-for="hierq in config['hierarquies']">{{hierq}}</a>
+      </div>
 
-  </div>
-  <div class="treemap">
-  </div>
-  <table class="table table-condensed">
-    <tr>
-      <th>Titel</th>
-      <th class="num">Betrag</th>
-      <th class="num">Anteil</th>
-    </tr>
-    <tr v-bind:class="{small: cell['_small']}" v-for="cell in data['cells']">
-        <td>
-        <i :style="`color: ${cell['_color']};`" class="fa fa-square"></i>
-        <a v-if="cell['_url']" :href="cell['_url']">{{ cell['_label'] }}</a>
-          <span v-if="!cell['_url']">
-            {{ cell['_label'] }}
-          </span
-        </td>
-        <td class="num">{{ cell['_value_fmt'] }}</td>
-        <td class="num">{{ cell['_percentage_fmt'] }}</td>
+    </div>
+    <div class="treemap">
+    </div>
+    <table class="table table-condensed">
+      <tr>
+        <th>Titel</th>
+        <th class="num">Betrag</th>
+        <th class="num">Anteil</th>
       </tr>
-    <tr>
-      <td colspan="3">
-        <span class="pull-right">
-          <a class="show-small" href="#"><i class="fa fa-plus-square"></i> kleine Posten anzeigen</a>
-          <a class="hide-small" href="#"><i class="fa fa-minus-square"></i> kleine Posten verstecken</a></span>
-        </span>
-      </td>
-    </tr>
-    <tr>
-      <th>
-        Total
-      </th>
-      <th v-if="data['summary']" class="num">{{ data['summary']['_valueFmt'] }}</th>
-      <th class="num">100%</th>
-    </tr>
-  </table>
+      <tr v-bind:class="{small: cell['_small']}" v-for="cell in data['cells']">
+          <td>
+          <i :style="`color: ${cell['_color']};`" class="fa fa-square"></i>
+          <a v-if="cell['_url']" :href="cell['_url']">{{ cell['_label'] }}</a>
+            <span v-if="!cell['_url']">
+              {{ cell['_label'] }}
+            </span
+          </td>
+          <td class="num">{{ cell['_value_fmt'] }}</td>
+          <td class="num">{{ cell['_percentage_fmt'] }}</td>
+        </tr>
+      <tr>
+        <td colspan="3">
+          <span class="pull-right">
+            <a class="show-small" href="#"><i class="fa fa-plus-square"></i> kleine Posten anzeigen</a>
+            <a class="hide-small" href="#"><i class="fa fa-minus-square"></i> kleine Posten verstecken</a></span>
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <th>
+          Total
+        </th>
+        <th v-if="data['summary']" class="num">{{ data['summary']['_valueFmt'] }}</th>
+        <th class="num">100%</th>
+      </tr>
+    </table>
   </div>
 </template>
 
@@ -260,7 +260,13 @@ export default {
 }
 </script>
 
-<style >
+<style lang="scss">
+
+.treemap-content {
+  max-width: 1200px;
+  margin: auto;
+}
+
 h1, h2 {
   font-weight: normal;
 }
@@ -318,6 +324,7 @@ a {
 }
 
 .table {
+  width: 100%;
   margin-top: 1em;
 
   td, th {

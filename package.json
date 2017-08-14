@@ -17,6 +17,8 @@
     "accounting": "^0.4.1",
     "axios": "^0.16.2",
     "d3-webpack-loader": "^0.1.1",
+    "node-sass": "^4.5.3",
+    "sass": "^1.0.0-beta.2",
     "vue": "^2.3.3",
     "vue-d3": "^0.1.0",
     "vue-router": "^2.6.0"
