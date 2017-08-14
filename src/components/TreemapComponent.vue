@@ -149,6 +149,11 @@ export default {
         color = color.domain([this.data.total_cell_count, 0])
 
         var total = 0
+
+        // Remove data with negative values
+        var valueDimension = this.config['value']
+        this.data['cells'] = this.data['cells'].filter(function (c) { return c[valueDimension] > 0 })
+
         for (var i in this.data['cells']) {
           total += this.data['cells'][i][this.config['value']]
           this.data['summary']['_value'] = total
@@ -171,12 +176,6 @@ export default {
           if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['name']]['levels'].length - 1) {
             this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}${filters}`
           }
-          // cell._current_key = cell[site.keyrefs[dimension]]
-          // dimension = dimension.split('.')[0]
-          // cell._current_label = cell[site.labelrefs[dimension]]
-          // cell._current_key = cell[site.keyrefs[dimension]]
-          // cell._value = cell[site.aggregate]
-          // cell._value_fmt = OSDE.amount(cell._value)
           this.data['cells'][i]['_percentage'] = this.data['cells'][i]['_value'] / total
           this.data['cells'][i]['_small'] = this.data['cells'][i]['_percentage'] < 0.01
           var percentageFmt = (this.data['cells'][i]['_percentage'] * 100).toFixed(2) + '%'
