@@ -1,5 +1,11 @@
 <template>
   <div>
+  <div class="controls">
+    <div class="hierarquies">
+    <a :href="`#${hierq}`" v-for="hierq in config['hierarquies']">{{hierq}}</a>
+    </div>
+
+  </div>
   <div class="treemap">
   </div>
   <table class="table table-condensed">
@@ -61,7 +67,20 @@ export default {
       config: {
         'value': 'Betrag.sum',
         'hierarquies': ['administrative_classification', 'economic_classification'],
-        'filters': {'Jahr': {'name': 'date_2.Jahr', 'values': [2017, 2016]}}
+        'filters': {
+          'Jahr': {
+            'name': 'date_2.Jahr',
+            'values': [2017, 2016],
+            'type': 'number',
+            'default': true
+          },
+          'Typ': {
+            'name': 'fin_source_Typ.Typ',
+            'values': [1, 2, 3],
+            'type': 'string',
+            'default': false
+          }
+        }
       },
       selectedHierarchy: {},
       filters: {},
@@ -148,15 +167,26 @@ export default {
 
     getFilters: function () {
       var filters = ''
+      var filterArgumentQuote
       for (var k in this.filters) {
-        filters += `${this.config['filters'][k]['name']}:${this.filters[k]}|`
+        filterArgumentQuote = ''
+        if (this.config['filters'][k]['type'] === 'string') {
+          filterArgumentQuote = '"'
+        }
+        filters += `${this.config['filters'][k]['name']}:${filterArgumentQuote}${this.filters[k]}${filterArgumentQuote}|`
       }
 
       if (filters === '') {
         for (k in this.config['filters']) {
-          var defaultFilter = this.config['filters'][k]['name']
-          var defaultFilterValue = this.config['filters'][k]['values'][0]
-          filters += `${defaultFilter}:${defaultFilterValue}`
+          if (this.config['filters'][k]['default']) {
+            var defaultFilter = this.config['filters'][k]['name']
+            var defaultFilterValue = this.config['filters'][k]['values'][0]
+            filterArgumentQuote = ''
+            if (this.config['filters'][k]['type'] === 'string') {
+              filterArgumentQuote = '"'
+            }
+            filters += `${defaultFilter}:${filterArgumentQuote}${defaultFilterValue}${filterArgumentQuote}|`
+          }
         }
       }
 
