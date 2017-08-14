@@ -2,6 +2,39 @@
   <div>
   <div class="treemap">
   </div>
+  <table class="table table-condensed">
+    <tr>
+      <th>Titel</th>
+      <th class="num">Betrag</th>
+      <th class="num">Anteil</th>
+    </tr>
+    <tr v-bind:class="{small: cell['_small']}" v-for="cell in data['cells']">
+        <td>
+        <i :style="`color: ${cell['_color']};`" class="fa fa-square"></i>
+        <a v-if="cell['_url']" :href="cell['_url']">{{ cell['_label'] }}</a>
+          <span v-if="!cell['_url']">
+            {{ cell['_label'] }}
+          </span
+        </td>
+        <td class="num">{{ cell['_value_fmt'] }}</td>
+        <td class="num">{{ cell['_percentage_fmt'] }}</td>
+      </tr>
+    <tr>
+      <td colspan="3">
+        <span class="pull-right">
+          <a class="show-small" href="#"><i class="fa fa-plus-square"></i> kleine Posten anzeigen</a>
+          <a class="hide-small" href="#"><i class="fa fa-minus-square"></i> kleine Posten verstecken</a></span>
+        </span>
+      </td>
+    </tr>
+    <tr>
+      <th>
+        Total
+      </th>
+      <th v-if="data['summary']" class="num">{{ data['summary']['_valueFmt'] }}</th>
+      <th class="num">100%</th>
+    </tr>
+  </table>
   </div>
 </template>
 
@@ -31,7 +64,8 @@ export default {
         'filters': {'Jahr': {'name': 'date_2.Jahr', 'values': [2017, 2016]}}
       },
       selectedHierarchy: {},
-      filters: {}
+      filters: {},
+      data: {}
     }
   },
 
@@ -154,10 +188,14 @@ export default {
         var valueDimension = this.config['value']
         this.data['cells'] = this.data['cells'].filter(function (c) { return c[valueDimension] > 0 })
 
+        // Calculate total amount to use it in percentual calculations
+        // this.data['summary'] = {}
+        this.data['summary']['_value'] = 0
         for (var i in this.data['cells']) {
           total += this.data['cells'][i][this.config['value']]
           this.data['summary']['_value'] = total
         }
+        this.data['summary']['_valueFmt'] = this.formatValue(this.data['summary']['_value'])
 
         for (i in this.data['cells']) {
           var level = this.getCurrentLevel()
@@ -249,5 +287,26 @@ a {
   text-decoration: none;
 }
 
+.table {
+  margin-top: 1em;
+
+  td, th {
+    font-size: 0.9em;
+  }
+
+  td.num, th.num {
+    text-align: right;
+  }
+
+  .hide-small, .small {
+    display: none;
+  }
+
+  .label a, .label a:hover {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 400;
+  }
+}
 
 </style>

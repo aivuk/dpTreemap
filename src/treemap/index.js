@@ -52,8 +52,6 @@ export default class Treemap {
        .style('height', function (d) { return Math.max(0, d.dy - 1) + 'px' })
     }
 
-    console.log(data)
-
     this.div.datum(root).selectAll('.node')
         .data(this.treemap.nodes)
           .enter().append('a')
