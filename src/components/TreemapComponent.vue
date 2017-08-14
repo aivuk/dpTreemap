@@ -309,4 +309,50 @@ a {
   }
 }
 
+@font-face {
+  font-family: 'fa-minimal';
+  src:  url('../assets/fonts/fa-minimal.eot?xss5ew');
+  src:  url('../assets/fonts/fa-minimal.eot?xss5ew#iefix') format('embedded-opentype'),
+    url('../assets/fonts/fa-minimal.ttf?xss5ew') format('truetype'),
+    url('../assets/fonts/fa-minimal.woff?xss5ew') format('woff'),
+    url('../assets/fonts/fa-minimal.svg?xss5ew#fa-minimal') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.fa {
+  display: inline-block;
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'fa-minimal' !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.fa-check:before {
+  content: "\f00c";
+}
+.fa-info-circle:before {
+  content: "\f05a";
+}
+.fa-square:before {
+  content: "\f0c8";
+}
+.fa-plus-square:before {
+  content: "\f0fe";
+}
+.fa-minus-square:before {
+  content: "\f146";
+}
+.fa-level-up:before {
+  content: "\f148";
+}
+
 </style>
