@@ -123,10 +123,6 @@ export default {
     }
   },
 
-  beforeCreated () {
-    this.defaultFilters()
-  },
-
   mounted () {
     // Get default filters values
     this.treemap = new Treemap('.treemap')
@@ -140,6 +136,7 @@ export default {
     window.addEventListener('hashchange', this.updateData)
     this.getURLParameters()
     this.getModel().then(() => {
+      this.defaultFilters()
       this.updateData()
     })
   },
