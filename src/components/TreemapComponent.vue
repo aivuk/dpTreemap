@@ -8,7 +8,7 @@
         <div class="filter" v-for="(filter, filterName) in config['filters']">
           {{ filterName }}
           <select :onchange="addFilter()" v-model="filters[filterName]">
-            <option selected value='' v-if="!filter.default">{{filter.defaultLabel}}</option>
+            <option :selected='true' value='' v-if="!filter.default">{{filter.defaultLabel}}</option>
             <option :value="filterValue.value" v-for="filterValue in filter.values">{{filterValue.label}}</option>
           </select>
         </div>
@@ -33,14 +33,6 @@
           <td class="num">{{ cell['_value_fmt'] }}</td>
           <td class="num">{{ cell['_percentage_fmt'] }}</td>
         </tr>
-      <tr>
-        <td colspan="3">
-          <span class="pull-right">
-            <a class="show-small" href="#"><i class="fa fa-plus-square"></i> kleine Posten anzeigen</a>
-            <a class="hide-small" href="#"><i class="fa fa-minus-square"></i> kleine Posten verstecken</a></span>
-          </span>
-        </td>
-      </tr>
       <tr>
         <th>
           Total
@@ -114,6 +106,22 @@ export default {
             'default': false,
             'defaultLabel': 'Alle',
             'label': 'Typ'
+          },
+          'titelart': {
+            'name': 'direction_2.Titelart',
+            'values': [
+              {
+                'label': 'Ausgabetitel',
+                'value': 'Ausgabetitel'
+              },
+              {
+                'label': 'Einnahmetitel',
+                'value': 'Einnahmetitel'
+              }
+            ],
+            'default': true,
+            'type': 'string',
+            'label': 'Art'
           }
         }
       },
@@ -133,12 +141,8 @@ export default {
       '#59449B', '#6E3F7C', '#6A246D', '#8A4873', '#EB0080',
       '#EF58A0', '#C05A89' ]
 
-    window.addEventListener('hashchange', this.updateData)
     this.getURLParameters()
-    this.getModel().then(() => {
-      this.defaultFilters()
-      this.updateData()
-    })
+    this.getModel()
   },
 
   methods: {
@@ -146,6 +150,8 @@ export default {
       for (var k in this.config.filters) {
         if (this.config.filters[k].default) {
           this.$set(this.filters, k, this.config.filters[k].values[0].value)
+        } else {
+          this.$set(this.filters, k, '')
         }
       }
     },
@@ -194,8 +200,9 @@ export default {
       var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
 
       if (levelsLength >= 1) {
-        label = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][levelsLength]]['label_ref']
-        key = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][levelsLength]]['key_ref']
+        var dimensionName = this.model.hierarchies[hierarchyName]['levels'][levelsLength]
+        label = this.model.dimensions[dimensionName]['label_ref']
+        key = this.model.dimensions[dimensionName]['key_ref']
       } else {
         label = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['label_ref']
         key = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['key_ref']
@@ -208,7 +215,9 @@ export default {
       return axios.get(apiRequestUrl).then(response => {
         this.model = response.data.model
         var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
-        this.selectedHierarchy['levels'] = this.model['hierarchies'][hierarchyName]['levels']
+        this.$set(this.selectedHierarchy, 'levels', this.model['hierarchies'][hierarchyName]['levels'])
+        this.defaultFilters()
+        window.addEventListener('hashchange', this.updateData)
       })
     },
 
@@ -328,6 +337,24 @@ export default {
 .treemap-content {
   max-width: 1200px;
   margin: auto;
+}
+
+.filters {
+  float: right;
+
+  .filter {
+    float: left;
+
+  }
+}
+
+.controls:after {
+  visibility: hidden;
+  display: block;
+  font-size: 0;
+  content: " ";
+  clear: both;
+  height: 0;
 }
 
 h1, h2 {
