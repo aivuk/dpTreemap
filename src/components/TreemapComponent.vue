@@ -1,8 +1,17 @@
 <template>
   <div class="treemap-content">
     <div class="controls">
-      <div class="hierarquies">
-      <a class="btn btn-default" :href="`#${hierq.url}`" v-for="hierq in config['hierarquies']">{{hierq['label']}}</a>
+      <div class="hierarchies">
+      <a class="btn btn-default" :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
+      </div>
+      <div class="filters">
+        <div class="filter" v-for="(filter, filterName) in config['filters']">
+          {{ filterName }}
+          <select :onchange="addFilter()" v-model="filters[filterName]">
+            <option selected value='' v-if="!filter.default">{{filter.defaultLabel}}</option>
+            <option :value="filterValue.value" v-for="filterValue in filter.values">{{filterValue.label}}</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="treemap">
@@ -65,7 +74,7 @@ export default {
       colors: [],
       config: {
         'value': 'Betrag.sum',
-        'hierarquies': [
+        'hierarchies': [
           {
             'datapackageHierarchy': 'administrative_classification',
             'url': 'einzelplan',
@@ -80,15 +89,31 @@ export default {
         'filters': {
           'Jahr': {
             'name': 'date_2.Jahr',
-            'values': [2017, 2016],
+            'values': [{'label': 2017, 'value': 2017}, {'label': 2016, 'value': 2016}],
             'type': 'number',
-            'default': true
+            'default': true,
+            'label': 'Jahr'
           },
           'Typ': {
             'name': 'fin_source_Typ.Typ',
-            'values': [1, 2, 3],
+            'values': [
+              {
+                'label': 'Senatsverwaltungen',
+                'value': 1
+              },
+              {
+                'label': 'Verfassungsorgane',
+                'value': 2
+              },
+              {
+                'label': 'Bezirke',
+                'value': 3
+              }
+            ],
             'type': 'string',
-            'default': false
+            'default': false,
+            'defaultLabel': 'Alle',
+            'label': 'Typ'
           }
         }
       },
@@ -98,7 +123,12 @@ export default {
     }
   },
 
+  beforeCreated () {
+    this.defaultFilters()
+  },
+
   mounted () {
+    // Get default filters values
     this.treemap = new Treemap('.treemap')
     this.colors = [
       '#CF3D1E', '#F15623', '#F68B1F', '#FFC60B', '#DFCE21',
@@ -109,24 +139,38 @@ export default {
 
     window.addEventListener('hashchange', this.updateData)
     this.getURLParameters()
-    this.getModel().then(() => this.updateData())
+    this.getModel().then(() => {
+      this.updateData()
+    })
   },
 
   methods: {
+    defaultFilters: function () {
+      for (var k in this.config.filters) {
+        if (this.config.filters[k].default) {
+          this.$set(this.filters, k, this.config.filters[k].values[0].value)
+        }
+      }
+    },
+
     getURLParameters: function () {
       var URLarguments = parseURL(window.location.toString())
       if (URLarguments[0].length === 0) {
-        this.selectedHierarchy['hierarchy'] = this.config['hierarquies'][0]
-        window.location.hash = this.config['hierarquies'][0]['url']
+        this.$set(this.selectedHierarchy, 'hierarchy', this.config['hierarchies'][0])
+        window.location.hash = this.config['hierarchies'][0]['url']
       } else {
-        var hierarchy = this.config['hierarquies'].find(function (h) { return h['url'] === URLarguments[0][0] })
-        this.selectedHierarchy['hierarchy'] = hierarchy
+        var hierarchy = this.config['hierarchies'].find(function (h) { return h['url'] === URLarguments[0][0] })
+        this.$set(this.selectedHierarchy, 'hierarchy', hierarchy)
       }
-      this.selectedHierarchy['levelsParams'] = URLarguments[0].splice(1)
-      this.filters = URLarguments[1]
+      this.$set(this.selectedHierarchy, 'levelsParams', URLarguments[0].splice(1))
+
+      var urlFilters = URLarguments[1]
+      for (var k in urlFilters) {
+        this.filters[k] = urlFilters[k]
+      }
     },
 
-    getHierarquies: function () {
+    getHierarchies: function () {
       var levelsLength = this.selectedHierarchy['levelsParams'].length
       var hierqQuery = ''
 
@@ -140,6 +184,11 @@ export default {
         }
       }
       return hierqQuery
+    },
+
+    addFilter: function () {
+      var URLarguments = parseURL(window.location.toString())
+      window.location.hash = `${URLarguments[0].join('/')}?${qs.stringify(this.filters)}`
     },
 
     getDrilldown: function () {
@@ -184,18 +233,20 @@ export default {
       var filters = ''
       var filterArgumentQuote
       for (var k in this.filters) {
-        filterArgumentQuote = ''
-        if (this.config['filters'][k]['type'] === 'string') {
-          filterArgumentQuote = '"'
+        if (this.filters[k] !== '') {
+          filterArgumentQuote = ''
+          if (this.config['filters'][k]['type'] === 'string') {
+            filterArgumentQuote = '"'
+          }
+          filters += `${this.config['filters'][k]['name']}:${filterArgumentQuote}${this.filters[k]}${filterArgumentQuote}|`
         }
-        filters += `${this.config['filters'][k]['name']}:${filterArgumentQuote}${this.filters[k]}${filterArgumentQuote}|`
       }
 
       if (filters === '') {
         for (k in this.config['filters']) {
           if (this.config['filters'][k]['default']) {
             var defaultFilter = this.config['filters'][k]['name']
-            var defaultFilterValue = this.config['filters'][k]['values'][0]
+            var defaultFilterValue = this.config['filters'][k]['values'][0]['value']
             filterArgumentQuote = ''
             if (this.config['filters'][k]['type'] === 'string') {
               filterArgumentQuote = '"'
@@ -216,10 +267,10 @@ export default {
       var apiRequestUrl
 
       var drilldown = this.getDrilldown()
-      var hierarquiesFilter = this.getHierarquies()
+      var hierarchiesFilter = this.getHierarchies()
       var filters = this.getFilters()
 
-      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarquiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
+      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarchiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
 
       axios.get(apiRequestUrl).then(response => {
         this.data = response.data
