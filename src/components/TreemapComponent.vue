@@ -2,9 +2,8 @@
   <div class="treemap-content">
     <div class="controls">
       <div class="hierarquies">
-      <a :href="`#${hierq}`" v-for="hierq in config['hierarquies']">{{hierq}}</a>
+      <a class="btn btn-default" :href="`#${hierq.url}`" v-for="hierq in config['hierarquies']">{{hierq['label']}}</a>
       </div>
-
     </div>
     <div class="treemap">
     </div>
@@ -66,7 +65,18 @@ export default {
       colors: [],
       config: {
         'value': 'Betrag.sum',
-        'hierarquies': ['administrative_classification', 'economic_classification'],
+        'hierarquies': [
+          {
+            'datapackageHierarchy': 'administrative_classification',
+            'url': 'einzelplan',
+            'label': 'Einzelpläne'
+          },
+          {
+            'datapackageHierarchy': 'functional_classification',
+            'url': 'funktion',
+            'label': 'Funktionen'
+          }
+        ],
         'filters': {
           'Jahr': {
             'name': 'date_2.Jahr',
@@ -106,10 +116,11 @@ export default {
     getURLParameters: function () {
       var URLarguments = parseURL(window.location.toString())
       if (URLarguments[0].length === 0) {
-        this.selectedHierarchy = { 'name': this.config['hierarquies'][0] }
-        window.location.hash = this.config['hierarquies'][0]
+        this.selectedHierarchy['hierarchy'] = this.config['hierarquies'][0]
+        window.location.hash = this.config['hierarquies'][0]['url']
       } else {
-        this.selectedHierarchy = { 'name': URLarguments[0] }
+        var hierarchy = this.config['hierarquies'].find(function (h) { return h['url'] === URLarguments[0][0] })
+        this.selectedHierarchy['hierarchy'] = hierarchy
       }
       this.selectedHierarchy['levelsParams'] = URLarguments[0].splice(1)
       this.filters = URLarguments[1]
@@ -120,9 +131,10 @@ export default {
       var hierqQuery = ''
 
       if (levelsLength > 0) {
-        for (var i in this.model.hierarchies[this.selectedHierarchy['name']]['levels']) {
+        var hierarchy = this.model.hierarchies[this.selectedHierarchy['hierarchy']['datapackageHierarchy']]
+        for (var i in hierarchy['levelsP']) {
           if (i < levelsLength) {
-            var hierqName = this.model.hierarchies[this.selectedHierarchy['name']]['levels'][i]
+            var hierqName = hierarchy['levels'][i]
             hierqQuery += `|${this.model.dimensions[hierqName]['key_ref']}:"${this.selectedHierarchy['levelsParams'][i]}"`
           }
         }
@@ -133,13 +145,14 @@ export default {
     getDrilldown: function () {
       var levelsLength = this.selectedHierarchy['levelsParams'].length
       var label, key
+      var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
 
       if (levelsLength >= 1) {
-        label = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][levelsLength]]['label_ref']
-        key = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][levelsLength]]['key_ref']
+        label = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][levelsLength]]['label_ref']
+        key = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][levelsLength]]['key_ref']
       } else {
-        label = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][0]]['label_ref']
-        key = this.model.dimensions[this.model.hierarchies[this.selectedHierarchy['name']]['levels'][0]]['key_ref']
+        label = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['label_ref']
+        key = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['key_ref']
       }
       return `${label}|${key}`
     },
@@ -148,7 +161,8 @@ export default {
       var apiRequestUrl = `${this.apiurl}${this.datapackage}/model`
       return axios.get(apiRequestUrl).then(response => {
         this.model = response.data.model
-        this.selectedHierarchy['levels'] = this.model['hierarchies'][this.selectedHierarchy['name']]['levels']
+        var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
+        this.selectedHierarchy['levels'] = this.model['hierarchies'][hierarchyName]['levels']
       })
     },
 
@@ -158,8 +172,9 @@ export default {
     },
 
     getCurrentLevel: function () {
+      var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
       var levelsLength = this.selectedHierarchy['levelsParams'].length
-      var levelName = this.model['hierarchies'][this.selectedHierarchy['name']]['levels'][levelsLength]
+      var levelName = this.model['hierarchies'][hierarchyName]['levels'][levelsLength]
       var levelLabel = this.model['dimensions'][levelName]['label_ref']
       var levelKey = this.model['dimensions'][levelName]['key_ref']
       return [levelLabel, levelKey]
@@ -241,8 +256,8 @@ export default {
           this.data['cells'][i]['_color'] = color(i)
           this.data['cells'][i]['_label'] = this.data['cells'][i][level[0]]
           this.data['cells'][i]['_value_fmt'] = this.formatValue(this.data['cells'][i]['_value'])
-          if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['name']]['levels'].length - 1) {
-            this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['name']}/${levelsParams}${this.data['cells'][i][level[1]]}${filters}`
+          if (this.selectedHierarchy['levelsParams'].length < this.model.hierarchies[this.selectedHierarchy['hierarchy']['datapackageHierarchy']]['levels'].length - 1) {
+            this.data['cells'][i]['_url'] = `#${this.selectedHierarchy['hierarchy']['url']}/${levelsParams}${this.data['cells'][i][level[1]]}${filters}`
           }
           this.data['cells'][i]['_percentage'] = this.data['cells'][i]['_value'] / total
           this.data['cells'][i]['_small'] = this.data['cells'][i]['_percentage'] < 0.01
