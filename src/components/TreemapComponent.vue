@@ -143,6 +143,10 @@ export default {
     }
   },
 
+  computed: {
+    currentLevel: function () { return this.selectedHierarchy['levelsParams'].length }
+  },
+
   mounted () {
     this.treemap = new Treemap('.treemap')
     this.getURLParameters()
@@ -211,8 +215,8 @@ export default {
       window.location.hash = `${URLarguments[0].join('/')}?${qs.stringify(this.filters)}`
     },
 
-    getDrilldown: function () {
-      var level = this.getCurrentLevel()
+    getDrilldown: function (levelNumber = this.currentLevel) {
+      var level = this.getLevel(levelNumber)
       var label = level[0]
       var key = level[1]
       return `${label}|${key}`
@@ -229,15 +233,43 @@ export default {
       })
     },
 
+    getRootColors: function (color, data) {
+      var level = this.getLevel(0)
+      for (var i in data['cells']) {
+        var cellLevel = data['cells'][i][level[1]]
+        this.hierarchyColors[cellLevel] = color(i)
+      }
+    },
+
     updateData: function () {
       this.getURLParameters()
+      if (Object.keys(this.hierarchyColors).length === 0) {
+        return this.getRoot().then(response => { this.getData() })
+      }
       this.getData()
     },
 
-    getCurrentLevel: function () {
+    getRoot: function () {
+      var apiRequestUrl = this.createApiRequestURL(true)
+      console.log(apiRequestUrl)
+      return axios.get(apiRequestUrl).then(response => {
+        var color = d3.scale.ordinal().range(this.colors)
+        color = color.domain([response.data.total_cell_count, 0])
+        this.getRootColors(color, response.data)
+      })
+    },
+
+    getRootLevel: function () {
       var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
-      var levelsLength = this.selectedHierarchy['levelsParams'].length
-      var dimensionName = this.model['hierarchies'][hierarchyName]['levels'][levelsLength]
+      var dimensionName = this.model['hierarchies'][hierarchyName]['levels'][0]
+      var levelLabel = this.model['dimensions'][dimensionName]['label_ref']
+      var levelKey = this.model['dimensions'][dimensionName]['key_ref']
+      return [levelLabel, levelKey]
+    },
+
+    getLevel: function (level) {
+      var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
+      var dimensionName = this.model['hierarchies'][hierarchyName]['levels'][level]
       var levelLabel = this.model['dimensions'][dimensionName]['label_ref']
       var levelKey = this.model['dimensions'][dimensionName]['key_ref']
       return [levelLabel, levelKey]
@@ -277,9 +309,16 @@ export default {
       return accounting.formatMoney(value, '€', 0, '.')
     },
 
-    createApiRequestURL: function () {
-      var drilldown = this.getDrilldown()
-      var hierarchiesFilter = this.getHierarchies()
+    createApiRequestURL: function (rootLevel = false) {
+      var drilldown
+      var hierarchiesFilter = ''
+      if (rootLevel) {
+        drilldown = this.getDrilldown(0)
+        console.log(drilldown)
+      } else {
+        drilldown = this.getDrilldown()
+        hierarchiesFilter = this.getHierarchies()
+      }
       var filters = this.getFilters()
       var apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarchiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
       return apiRequestUrl
@@ -289,15 +328,12 @@ export default {
       var apiRequestUrl = this.createApiRequestURL()
       axios.get(apiRequestUrl).then(response => {
         this.data = response.data
-        var level = this.getCurrentLevel()
+        var level = this.getLevel(this.currentLevel)
         var color = d3.scale.ordinal().range(this.colors)
         color = color.domain([this.data.total_cell_count, 0])
 
         if (this.selectedHierarchy['levelsParams'].length === 0) {
-          for (var i in this.data['cells']) {
-            var cellLevel = this.data['cells'][i][level[1]]
-            this.hierarchyColors[cellLevel] = color(i)
-          }
+          this.getRootColors(color, this.data)
         } else {
           var rootColor = d3.rgb(this.hierarchyColors[this.selectedHierarchy['levelsParams'][0]])
           color = d3.scale.linear()
@@ -319,7 +355,7 @@ export default {
         }
         this.data['summary']['_valueFmt'] = this.formatValue(this.data['summary']['_value'])
 
-        for (i in this.data['cells']) {
+        for (var i in this.data['cells']) {
           var levelsParams = ''
           var filters = qs.stringify(this.filters)
           if (filters !== '') {
