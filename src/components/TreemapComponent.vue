@@ -8,7 +8,7 @@
         Ebene hoch
         </strong>
       </a>
-      <a class="btn btn-default" :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
+      <a class="btn btn-default" :class='{active: true}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
       </div>
       <div class="filters">
         <div class="filter" v-for="(filter, filterName) in config['filters']">
@@ -133,7 +133,8 @@ export default {
       },
       selectedHierarchy: {'levelsParams': []},
       filters: {},
-      data: {}
+      data: {},
+      hierarchyColors: {}
     }
   },
 
@@ -205,18 +206,9 @@ export default {
     },
 
     getDrilldown: function () {
-      var levelsLength = this.selectedHierarchy['levelsParams'].length
-      var label, key
-      var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
-
-      if (levelsLength >= 1) {
-        var dimensionName = this.model.hierarchies[hierarchyName]['levels'][levelsLength]
-        label = this.model.dimensions[dimensionName]['label_ref']
-        key = this.model.dimensions[dimensionName]['key_ref']
-      } else {
-        label = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['label_ref']
-        key = this.model.dimensions[this.model.hierarchies[hierarchyName]['levels'][0]]['key_ref']
-      }
+      var level = this.getCurrentLevel()
+      var label = level[0]
+      var key = level[1]
       return `${label}|${key}`
     },
 
@@ -239,9 +231,9 @@ export default {
     getCurrentLevel: function () {
       var hierarchyName = this.selectedHierarchy['hierarchy']['datapackageHierarchy']
       var levelsLength = this.selectedHierarchy['levelsParams'].length
-      var levelName = this.model['hierarchies'][hierarchyName]['levels'][levelsLength]
-      var levelLabel = this.model['dimensions'][levelName]['label_ref']
-      var levelKey = this.model['dimensions'][levelName]['key_ref']
+      var dimensionName = this.model['hierarchies'][hierarchyName]['levels'][levelsLength]
+      var levelLabel = this.model['dimensions'][dimensionName]['label_ref']
+      var levelKey = this.model['dimensions'][dimensionName]['key_ref']
       return [levelLabel, levelKey]
     },
 
@@ -279,38 +271,49 @@ export default {
       return accounting.formatMoney(value, '€', 0, '.')
     },
 
-    getData: function ($event) {
-      var apiRequestUrl
-
+    createApiRequestURL: function () {
       var drilldown = this.getDrilldown()
       var hierarchiesFilter = this.getHierarchies()
       var filters = this.getFilters()
+      var apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarchiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
+      return apiRequestUrl
+    },
 
-      apiRequestUrl = `${this.apiurl}${this.datapackage}/aggregate?cut=${filters}${hierarchiesFilter}&drilldown=${drilldown}&order=${this.config.value}:desc&pagesize=30`
-
+    getData: function ($event) {
+      var apiRequestUrl = this.createApiRequestURL()
       axios.get(apiRequestUrl).then(response => {
         this.data = response.data
-
+        var level = this.getCurrentLevel()
         var color = d3.scale.ordinal().range(this.colors)
         color = color.domain([this.data.total_cell_count, 0])
 
-        var total = 0
+        if (this.selectedHierarchy['levelsParams'].length === 0) {
+          for (var i in this.data['cells']) {
+            var cellLevel = this.data['cells'][i][level[1]]
+            this.hierarchyColors[cellLevel] = color(i)
+          }
+        } else {
+          var rootColor = d3.rgb(this.hierarchyColors[this.selectedHierarchy['levelsParams'][0]])
+          color = d3.scale.linear()
+          color = color.interpolate(d3.interpolateRgb)
+          color = color.range([rootColor.brighter(), rootColor.darker().darker()])
+          color = color.domain([this.data['cells'].length, 0])
+        }
 
+        var total = 0
         // Remove data with negative values
         var valueDimension = this.config['value']
         this.data['cells'] = this.data['cells'].filter(function (c) { return c[valueDimension] > 0 })
 
         // Calculate total amount to use it in percentual calculations
-        // this.data['summary'] = {}
         this.data['summary']['_value'] = 0
-        for (var i in this.data['cells']) {
+        for (i in this.data['cells']) {
           total += this.data['cells'][i][this.config['value']]
           this.data['summary']['_value'] = total
         }
         this.data['summary']['_valueFmt'] = this.formatValue(this.data['summary']['_value'])
 
         for (i in this.data['cells']) {
-          var level = this.getCurrentLevel()
           var levelsParams = ''
           var filters = qs.stringify(this.filters)
           if (filters !== '') {
