@@ -2,6 +2,12 @@
   <div class="treemap-content">
     <div class="controls">
       <div class="hierarchies">
+      <a class="btn btn-default" v-if="selectedHierarchy['levelsParams'].length >= 1" @click="levelBack()">
+        <i class="fa fa-level-up"></i>
+        <strong>
+        Ebene hoch
+        </strong>
+      </a>
       <a class="btn btn-default" :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
       </div>
       <div class="filters">
@@ -125,7 +131,7 @@ export default {
           }
         }
       },
-      selectedHierarchy: {},
+      selectedHierarchy: {'levelsParams': []},
       filters: {},
       data: {}
     }
@@ -187,6 +193,10 @@ export default {
         }
       }
       return hierqQuery
+    },
+
+    levelBack: function () {
+      window.history.back()
     },
 
     addFilter: function () {
