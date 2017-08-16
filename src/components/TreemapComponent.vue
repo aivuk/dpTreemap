@@ -207,7 +207,12 @@ export default {
     },
 
     levelBack: function () {
-      window.history.back()
+      var URLarguments = parseURL(window.location.toString())
+      var hierarchyURL = URLarguments[0]
+      if (hierarchyURL.length > 1) {
+        hierarchyURL.pop()
+      }
+      window.location.hash = `${hierarchyURL.join('/')}?${qs.stringify(this.filters)}`
     },
 
     addFilter: function () {
