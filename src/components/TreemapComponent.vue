@@ -8,7 +8,7 @@
         Ebene hoch
         </strong>
       </a>
-      <a class="btn btn-default" :class='{active: true}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
+      <a class="btn btn-default" :class='{active: hierarchyURL() === hierq.url}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
       </div>
       <div class="filters">
         <div class="filter" v-for="(filter, filterName) in config['filters']">
@@ -69,7 +69,12 @@ export default {
   data () {
     return {
       model: {},
-      colors: [],
+      colors: [
+        '#CF3D1E', '#F15623', '#F68B1F', '#FFC60B', '#DFCE21',
+        '#BCD631', '#95C93D', '#48B85C', '#00833D', '#00B48D',
+        '#60C4B1', '#27C4F4', '#478DCB', '#3E67B1', '#4251A3',
+        '#59449B', '#6E3F7C', '#6A246D', '#8A4873', '#EB0080',
+        '#EF58A0', '#C05A89' ],
       config: {
         'value': 'Betrag.sum',
         'hierarchies': [
@@ -139,15 +144,7 @@ export default {
   },
 
   mounted () {
-    // Get default filters values
     this.treemap = new Treemap('.treemap')
-    this.colors = [
-      '#CF3D1E', '#F15623', '#F68B1F', '#FFC60B', '#DFCE21',
-      '#BCD631', '#95C93D', '#48B85C', '#00833D', '#00B48D',
-      '#60C4B1', '#27C4F4', '#478DCB', '#3E67B1', '#4251A3',
-      '#59449B', '#6E3F7C', '#6A246D', '#8A4873', '#EB0080',
-      '#EF58A0', '#C05A89' ]
-
     this.getURLParameters()
     this.getModel()
   },
@@ -160,6 +157,15 @@ export default {
         } else {
           this.$set(this.filters, k, '')
         }
+      }
+    },
+
+    hierarchyURL: function () {
+      var URLarguments = parseURL(window.location.toString())
+      if (URLarguments[0].length > 0) {
+        return URLarguments[0][0]
+      } else {
+        return ''
       }
     },
 
@@ -358,10 +364,10 @@ export default {
 
   .filters {
     float: right;
-  
+
     .filter {
       float: left;
-  
+      padding-left: 10px;
     }
   }
   
