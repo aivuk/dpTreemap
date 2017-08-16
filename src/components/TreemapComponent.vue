@@ -6,8 +6,8 @@
       </div>
       <div class="filters">
         <div class="filter" v-for="(filter, filterName) in config['filters']">
-          {{ filterName }}
-          <select :onchange="addFilter()" v-model="filters[filterName]">
+          {{ filter.label }}
+          <select class="btn btn-default dropdown-toggle" :onchange="addFilter()" v-model="filters[filterName]">
             <option :selected='true' value='' v-if="!filter.default">{{filter.defaultLabel}}</option>
             <option :value="filterValue.value" v-for="filterValue in filter.values">{{filterValue.label}}</option>
           </select>
@@ -339,12 +339,21 @@ export default {
   margin: auto;
 }
 
-.filters {
-  float: right;
+.controls {
 
-  .filter {
+  padding: 10px 0;
+
+  .filters {
+    float: right;
+  
+    .filter {
+      float: left;
+  
+    }
+  }
+  
+  .hierarchies {
     float: left;
-
   }
 }
 
