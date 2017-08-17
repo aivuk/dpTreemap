@@ -1,5 +1,6 @@
 <template>
   <div class="treemap-content">
+    <tooltip/>
     <div class="controls">
       <div class="hierarchies">
       <a class="btn btn-default" v-if="selectedHierarchy['levelsParams'].length >= 1" @click="levelBack()">
@@ -8,7 +9,9 @@
         Ebene hoch
         </strong>
       </a>
-      <a class="btn btn-default" :class='{active: hierarchyURL() === hierq.url}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">{{hierq['label']}}</a>
+      <a v-popover:tooltip="hierq['label']" class="btn btn-default" :class='{active: hierarchyURL() === hierq.url}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">
+        {{hierq['label']}}
+      </a>
       </div>
       <div class="filters">
         <div class="filter" v-for="(filter, filterName) in config['filters']">
@@ -256,7 +259,6 @@ export default {
 
     getRoot: function () {
       var apiRequestUrl = this.createApiRequestURL(true)
-      console.log(apiRequestUrl)
       return axios.get(apiRequestUrl).then(response => {
         var color = d3.scale.ordinal().range(this.colors)
         color = color.domain([response.data.total_cell_count, 0])
@@ -319,7 +321,6 @@ export default {
       var hierarchiesFilter = ''
       if (rootLevel) {
         drilldown = this.getDrilldown(0)
-        console.log(drilldown)
       } else {
         drilldown = this.getDrilldown()
         hierarchiesFilter = this.getHierarchies()
@@ -561,6 +562,18 @@ a {
 }
 .fa-level-up:before {
   content: "\f148";
+}
+
+.tooltip {
+  position: absolute;
+  text-align: center;
+  padding: 10px;
+  font: 12px sans-serif;
+  background: #eee;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
 }
 
 </style>

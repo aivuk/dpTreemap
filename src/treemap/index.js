@@ -52,6 +52,12 @@ export default class Treemap {
        .style('height', function (d) { return Math.max(0, d.dy - 1) + 'px' })
     }
 
+    d3.select('.tooltip').remove()
+
+    var div = d3.select('body').append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0)
+
     this.div.datum(root).selectAll('.node')
         .data(this.treemap.nodes)
           .enter().append('a')
@@ -69,10 +75,19 @@ export default class Treemap {
             .on('mouseover', function (d) {
               d3.select(this).transition().duration(200)
                 .style({ 'background': d3.rgb(d.color).darker() })
+              div.transition()
+                .duration(200)
+                .style('opacity', 0.9)
+              div.html(`<strong>${d.name}</strong><br>${d.value_fmt}<br><strong>${(d.percentage * 100).toFixed(2)}%</strong>`)
+                .style('left', (d3.event.pageX) + 'px')
+                .style('top', (d3.event.pageY - 28) + 'px')
             })
             .on('mouseout', function (d) {
               d3.select(this).transition().duration(500)
                 .style({'background': d.color})
+              div.transition()
+                  .duration(500)
+                  .style('opacity', 0)
             })
             .transition()
             .duration(500)
