@@ -411,7 +411,7 @@ export default {
       padding-left: 10px;
     }
   }
-  
+
   .hierarchies {
     float: left;
   }
@@ -463,23 +463,35 @@ a {
   z-index: 5;
   font-weight: 300;
   text-shadow: -2px -2px 13px rgba(150, 150, 150, 0.9);
-}
 
-.amount {
-  color: #fff;
-  display: block;
-  padding-bottom: 0.2em;
-  font-size: 1.5em;
-  text-indent: 2px;
-}
+  a, a:hover {
+    color: #fff;
+    text-decoration: none;
+  }
 
-.node.big {
-  text-indent: 2px;
-}
+  &.big {
+    text-indent: 2px;
 
-.node:hover {
-  text-indent: 2px;
-  text-decoration: none;
+    .amount {
+      color: #fff;
+      display: block;
+      padding-bottom: 0.2em;
+      font-size: 1.5em;
+      text-indent: 2px;
+    }
+
+    &,&:hover {
+      color: #fff;
+      text-decoration: none;
+    }
+
+  }
+
+  &:hover {
+    text-indent: 2px;
+    text-decoration: none;
+  }
+
 }
 
 .table {
