@@ -1,6 +1,5 @@
 <template>
   <div class="treemap-content">
-    <tooltip/>
     <div class="controls">
       <div class="hierarchies">
       <a class="btn btn-default" v-if="selectedHierarchy['levelsParams'].length >= 1" @click="levelBack()">
@@ -23,7 +22,7 @@
         </div>
       </div>
     </div>
-    <div class="treemap">
+    <div id="treemap" class="treemap">
     </div>
     <table class="table table-condensed">
       <tr>
@@ -151,7 +150,7 @@ export default {
   },
 
   mounted () {
-    this.treemap = new Treemap('.treemap')
+    this.treemap = new Treemap('treemap')
     this.getURLParameters()
     this.getModel()
   },

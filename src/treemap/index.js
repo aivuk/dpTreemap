@@ -1,19 +1,18 @@
-import $ from 'jquery'
 import * as d3 from 'd3'
 
 export default class Treemap {
 
   constructor (elementID) {
-    this.$treemap = $(elementID)
+    this.elementID = elementID
     this.treemap = null
     this.div = null
   }
 
   create () {
-    this.width = this.$treemap.width()
-    this.height = this.$treemap.height()
-
-    this.$treemap.empty()
+    var currentTreemap = document.getElementById(this.elementID)
+    this.width = currentTreemap.offsetWidth
+    this.height = currentTreemap.offsetHeight
+    currentTreemap.innerHTML = ''
 
     this.treemap = d3.layout.treemap()
       .size([this.width, this.height])
