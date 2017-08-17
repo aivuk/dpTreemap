@@ -9,7 +9,7 @@
         Ebene hoch
         </strong>
       </a>
-      <a v-popover:tooltip="hierq['label']" class="btn btn-default" :class='{active: hierarchyURL() === hierq.url}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">
+      <a class="btn btn-default" :class='{active: hierarchyURL() === hierq.url}' :href="`#${hierq.url}`" v-for="hierq in config['hierarchies']">
         {{hierq['label']}}
       </a>
       </div>
